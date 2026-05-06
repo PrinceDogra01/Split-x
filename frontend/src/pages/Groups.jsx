@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaPlus, FaTrash, FaUserPlus, FaReceipt } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaUserPlus, FaReceipt, FaSpinner, FaCopy, FaWhatsapp, FaEnvelope } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { groupsAPI, inviteAPI, expensesAPI, balancesAPI, settlementsAPI } from '../services/api';
 import { parseExpenseVoiceCommand } from '../utils/voiceParser';
@@ -1077,34 +1077,123 @@ const AddExpenseModal = ({ group, onClose, onSuccess }) => {
 const AddMemberModal = ({ group, onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lastInviteLink, setLastInviteLink] = useState('');
+
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const copyInviteLink = async () => {
+    if (!lastInviteLink) return;
+    try {
+      await navigator.clipboard.writeText(lastInviteLink);
+      toast.success('Invite link copied!');
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const shareWhatsApp = () => {
+    if (!lastInviteLink) return;
+    const msg = `Join my group "${group?.name || 'SplitX Group'}" on SplitX.\n\n${lastInviteLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // In production, you'd search for users by email first
-    toast.info('Member addition feature requires user search functionality');
-    onClose();
+    const emailTrimmed = email.trim().toLowerCase();
+    if (!emailTrimmed) return toast.error('Please enter an email address');
+    if (!emailRe.test(emailTrimmed)) return toast.error('Invalid email address');
+
+    setLoading(true);
+    setLastInviteLink('');
+    try {
+      const res = await groupsAPI.inviteMemberByEmail(group._id, emailTrimmed);
+      toast.success(res.data?.message || 'Invite sent successfully');
+      if (res.data?.inviteLink) setLastInviteLink(res.data.inviteLink);
+      setEmail('');
+      onSuccess();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send invite');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          Add Member
-        </h2>
+      <motion.div
+        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 border border-gray-100 dark:border-gray-700"
+      >
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              Invite Member by Email
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+              We’ll email them a secure link to join <span className="font-semibold text-gray-900 dark:text-white">{group?.name}</span>.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Member Email
+              Email address
             </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
               placeholder="user@example.com"
             />
           </div>
+
+          {lastInviteLink && (
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3">
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                <FaEnvelope className="opacity-80" />
+                Invite link (optional share)
+              </p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={lastInviteLink}
+                  className="flex-1 text-xs px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={copyInviteLink}
+                  className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white text-xs font-semibold transition-colors"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FaCopy />
+                    Copy
+                  </span>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={shareWhatsApp}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-colors"
+              >
+                <FaWhatsapp />
+                Share on WhatsApp
+              </button>
+            </div>
+          )}
+
           <div className="flex space-x-4">
             <button
               type="button"
@@ -1118,11 +1207,18 @@ const AddMemberModal = ({ group, onClose, onSuccess }) => {
               disabled={loading}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Adding...' : 'Add Member'}
+              {loading ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <FaSpinner className="animate-spin" />
+                  Sending Invite...
+                </span>
+              ) : (
+                'Send Invite'
+              )}
             </button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };

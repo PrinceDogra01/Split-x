@@ -14,6 +14,7 @@ import Groups from './pages/Groups';
 import NewGroup from './pages/NewGroup';
 import Profile from './pages/Profile';
 import Activity from './pages/Activity';
+import JoinGroup from './pages/JoinGroup';
 import { isAuthenticated } from './utils/auth';
 
 function App() {
@@ -49,10 +50,16 @@ function App() {
             path="/register"
             element={isAuthenticated() ? <Navigate to="/dashboard" /> : <Register />}
           />
+          {/* Alias route to match invite link requirement (/signup?ref=USER_ID) */}
+          <Route
+            path="/signup"
+            element={isAuthenticated() ? <Navigate to="/dashboard" /> : <Register />}
+          />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/invite/accept" element={<AcceptInvite />} />
+          <Route path="/join-group/:groupId" element={<JoinGroup />} />
           <Route
             path="/dashboard"
             element={

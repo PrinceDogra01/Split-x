@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-const INVITE_EXPIRY_HOURS = 48;
+// Requirement: invite links expire in 24 hours
+const INVITE_EXPIRY_HOURS = 24;
 const STATUS = ['pending', 'accepted', 'expired', 'cancelled'];
 
 const groupInviteSchema = new mongoose.Schema({

@@ -259,7 +259,7 @@ const inviteMember = async (req, res) => {
 
     const token = GroupInvite.createToken();
     const tokenHash = GroupInvite.hashToken(token);
-    const expiresAt = GroupInvite.getExpiryDate(48);
+    const expiresAt = GroupInvite.getExpiryDate();
 
     const invite = await GroupInvite.create({
       group: group._id,
@@ -272,7 +272,9 @@ const inviteMember = async (req, res) => {
     });
 
     const inviterName = req.user.name || group.createdBy.name || 'A member';
-    const inviteLink = `${FRONTEND_URL}/invite/accept?token=${token}`;
+    // Required invite link format:
+    // http://localhost:5173/join-group/GROUP_ID?invite=TOKEN
+    const inviteLink = `${FRONTEND_URL}/join-group/${group._id}?invite=${token}`;
     let emailSent = false;
     try {
       await sendInviteEmail({
@@ -280,7 +282,7 @@ const inviteMember = async (req, res) => {
         groupName: group.name,
         inviterName,
         inviteLink,
-        expiryHours: 48,
+        expiryHours: GroupInvite.INVITE_EXPIRY_HOURS || 24,
         customMessage: invite.message,
       });
       emailSent = true;
@@ -299,7 +301,8 @@ const inviteMember = async (req, res) => {
         ? 'Invitation sent successfully'
         : 'Invitation created. Email could not be sent — share the link below.',
       invite: { _id: invite._id, email: invite.email, status: invite.status, expiresAt: invite.expiresAt },
-      inviteLink: emailSent ? undefined : inviteLink,
+      // Return link so UI can optionally copy/share even when email was sent.
+      inviteLink,
       invites,
     });
   } catch (error) {
@@ -308,4 +311,16 @@ const inviteMember = async (req, res) => {
 };
 
 module.exports.inviteMember = inviteMember;
+
+// @desc    Invite a user to a group by email (Members tab API)
+// @route   POST /api/groups/invite-member
+// @access  Private
+const inviteMemberByEmail = async (req, res) => {
+  const { groupId } = req.body || {};
+  if (!groupId) return res.status(400).json({ message: 'groupId is required' });
+  req.params.id = groupId;
+  return inviteMember(req, res);
+};
+
+module.exports.inviteMemberByEmail = inviteMemberByEmail;
 

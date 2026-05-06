@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { authAPI, groupsAPI, balancesAPI, expensesAPI } from '../services/api';
 import { getUser } from '../utils/auth';
 import toast from 'react-hot-toast';
+import InviteFriends from '../components/profile/InviteFriends';
 import { 
   FaUser, 
   FaEnvelope, 
@@ -84,6 +85,9 @@ const Profile = () => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Prefer the API user object; fall back to localStorage user (helps avoid nulls during brief loads).
+  const currentUserId = user?._id || getUser()?._id;
 
   if (loading) {
     return (
@@ -305,6 +309,9 @@ const Profile = () => {
                 </div>
               )}
             </div>
+
+            {/* Invite Friends */}
+            <InviteFriends userId={currentUserId} />
           </motion.div>
         </div>
       </div>

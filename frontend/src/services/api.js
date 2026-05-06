@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  // Use Vite proxy in dev (`vite.config.js`) and relative paths in production.
+  // Optionally override via `VITE_API_BASE_URL` (e.g. "http://localhost:5001/api").
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     "Content-Type": "application/json",
   },
@@ -64,6 +66,9 @@ export const groupsAPI = {
   removeMember: (id, memberId) => api.delete(`/groups/${id}/members/${memberId}`),
   getInvites: (groupId) => api.get(`/groups/${groupId}/invites`),
   invite: (id, data) => api.post(`/groups/${id}/invite`, data),
+  inviteMemberByEmail: (groupId, email, message) =>
+    api.post('/groups/invite-member', { groupId, email, message }),
+  joinByToken: (token) => api.get(`/groups/join/${token}`),
 };
 
 // Invite API (public get by token; accept with optional auth)

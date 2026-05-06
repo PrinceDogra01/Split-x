@@ -4,7 +4,7 @@ const User = require('../models/User');
 const { sendMail } = require('../utils/email');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const INVITE_EXPIRY_HOURS = 48;
+const INVITE_EXPIRY_HOURS = GroupInvite.INVITE_EXPIRY_HOURS || 24;
 
 // Validate email format
 function isValidEmail(email) {
@@ -225,7 +225,7 @@ const resendInvite = async (req, res) => {
     invite.status = 'cancelled';
     await invite.save();
 
-    const inviteLink = `${FRONTEND_URL}/invite/accept?token=${newToken}`;
+    const inviteLink = `${FRONTEND_URL}/join-group/${invite.group._id}?invite=${newToken}`;
     await sendInviteEmail({
       to: newInvite.email,
       groupName: invite.group.name,
@@ -272,12 +272,22 @@ const cancelInvite = async (req, res) => {
   }
 };
 
+// @desc    Join group by invite token (alias API for frontend join page)
+// @route   GET /api/groups/join/:token
+// @access  Optional (if not logged in, returns needsAuth)
+const joinGroupByToken = async (req, res) => {
+  // Reuse acceptInvite logic; token comes from params instead of body.
+  req.body = { token: req.params.token };
+  return acceptInvite(req, res);
+};
+
 module.exports = {
   getInviteByToken,
   acceptInvite,
   getGroupInvites,
   resendInvite,
   cancelInvite,
+  joinGroupByToken,
   sendInviteEmail,
   isValidEmail,
   FRONTEND_URL,

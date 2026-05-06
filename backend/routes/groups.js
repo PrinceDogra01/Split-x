@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, optionalProtect } = require('../middleware/auth');
 const { inviteLimiter } = require('../middleware/rateLimit');
 const {
   createGroup,
@@ -11,10 +11,14 @@ const {
   addMembers,
   removeMember,
   inviteMember,
+  inviteMemberByEmail,
 } = require('../controllers/groupController');
-const { getGroupInvites } = require('../controllers/inviteController');
+const { getGroupInvites, joinGroupByToken } = require('../controllers/inviteController');
 
-router.use(protect); // All routes require authentication
+// Public-ish join endpoint (optional auth)
+router.get('/join/:token', optionalProtect, joinGroupByToken);
+
+router.use(protect); // All routes below require authentication
 
 router.route('/')
   .post(createGroup)
@@ -29,6 +33,7 @@ router.put('/:id/members', addMembers);
 router.delete('/:id/members/:memberId', removeMember);
 router.get('/:id/invites', getGroupInvites);
 router.post('/:id/invite', inviteLimiter, inviteMember);
+router.post('/invite-member', inviteLimiter, inviteMemberByEmail);
 
 module.exports = router;
 
