@@ -1,0 +1,12 @@
+{
+  "name": "splitx",
+  "private": true,
+  "description": "Build frontend and run backend for single-service deployment",
+  "scripts": {
+    "build": "npm ci --prefix backend && npm ci --prefix frontend && npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

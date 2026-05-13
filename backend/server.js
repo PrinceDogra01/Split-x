@@ -1,6 +1,7 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
+const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -41,6 +42,16 @@ app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/balances', require('./routes/balances'));
 app.use('/api/settlements', require('./routes/settlements'));
 app.use('/api/payments', require('./routes/payments'));
+
+// Production: serve Vite build from the same origin as /api (axios uses baseURL `/api`)
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '..', 'frontend', 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
